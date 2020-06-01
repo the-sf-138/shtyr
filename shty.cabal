@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4ee1d0683af1895c697183f8b34f7c1e71742304d0ca0b2f5926f0859de71807
+-- hash: acb6af2561321e5774a8f3b8c4f6eb118fc4a646894d0ca595346be43199c95a
 
 name:           shty
 version:        0.1.0.0
@@ -27,7 +27,9 @@ source-repository head
 
 library
   exposed-modules:
+      JsonReader
       Lib
+      TestReader
   other-modules:
       Paths_shty
   hs-source-dirs:
