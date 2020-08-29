@@ -43,6 +43,32 @@ instance Eq RConstant where
   RString x == RString y = (x == y)
   _ == _ = False
 
+instance Eq RExpression where
+  FunctionCall a xs == FunctionCall b ys = (a == b) && (xs == ys)
+
+instance Eq RFunctionReference where
+  RFunctionStrangeName a == RFunctionStrangeName b = (a == b)
+  RFunctionIdentifier a == RFunctionIdentifier b = (a == b)
+  RFunctionReferenceExpression e == RFunctionReferenceExpression f = (e == f)
+
+instance Eq RStrangeName where
+  RStrange a == RStrange b = (a == b)
+
+instance Eq RIdentifier where
+  RIdentified a == RIdentified b = (a == b)
+
+instance Eq RFunctionArgument where
+  RTaggedFunctionArgument a e == RTaggedFunctionArgument b f = (a == b) && (e == f)
+  RSimpleFunctionArgument e == RSimpleFunctionArgument f = (e == f)
+  REllipses == REllipses = True
+  REllipsesN x == REllipsesN y = (x == y)
+  _ == _ = False
+
+instance Eq RFunctionTag where
+  RTagIdentifier t == RTagIdentifier s = (s == t)
+  RStrangeTag t == RStrangeTag s = (s == t)
+  _ == _ = False
+
 -- constants
 rNULL :: GenParser Char st RConstant
 rNULL = do
@@ -87,16 +113,26 @@ rInteger = do
 rString :: GenParser Char st RConstant
 rString = (try rSingleQuotedString) <|> rDoubleQuotedString
 
+rIdentifier :: GenParser Char st RIdentifier
+rIdentifier = do
+  s <- many rIdentifierChar
+  return $ RIdentified s
+
+rIdentifierChar :: GenParser Char st Char
+rIdentifierChar = alphaNum <|> (oneOf "_.")
+
 rSingleQuotedString :: GenParser Char st RConstant
 rSingleQuotedString = do 
    char '\''
-   s <- (manyTill rStringCharacter (try $ char '\''))
+   s <- many (rStringCharacter '\'')
+   char '\''
    return $ RString s
 
 rDoubleQuotedString :: GenParser Char st RConstant
 rDoubleQuotedString = do 
    char '\"'
-   s <- (manyTill rStringCharacter (try $ char '\"'))
+   s <- many (rStringCharacter '"')
+   char '\"'
    return $ RString s
 
 rConstant :: GenParser Char st RConstant
@@ -111,12 +147,15 @@ rConstant =
   (try rInteger) <|>
   (try rString)
 
--- TODO
-rStringCharacter :: GenParser Char st Char
-rStringCharacter = alphaNum
-
+-- If we see the escape char we have to check if we are escaping the end of the quoted sequence
+-- else we can just return the character
+rStringCharacter :: Char -> GenParser Char st Char
+rStringCharacter c = noneOf (concat ["\\", [c]])
+                     <|> try (string (concat ["\\", [c]]) >> return c)
+                     <|> noneOf [c]
 
 -- Annoying stuff for the escaped bois
+-- TODO not used yet
 escapedChars :: GenParser Char st Char
 escapedChars = oneOf "'\"nrtbafv\\" -- some other dumb shit im not handling
 
@@ -141,6 +180,10 @@ ellipseN = do
   n <- digit
   return $ REllipsesN (read [n]::Int)
 
+
+expression :: GenParser Char st RExpression
+expression = functionCall
+
 -- special infix operators are any printable characters delimited by %. the escape sequences for strings do not apply
 functionCall :: GenParser Char st RExpression
 functionCall = do
@@ -150,12 +193,34 @@ functionCall = do
     return $ FunctionCall fref []
 
 functionReference :: GenParser Char st RFunctionReference
-functionReference = do
-  return $ RFunctionIdentifier $ RIdentified "Hello"
+functionReference = (try functionReferenceIdentifier)
+  <|> (try functionReferenceStrangeName)
+  <|> functionReferenceExpression
 
+functionReferenceExpression :: GenParser Char st RFunctionReference
+functionReferenceExpression = do
+  char '('
+  e <- expression 
+  char ')'
+  return $ RFunctionReferenceExpression e
+
+functionReferenceStrangeName :: GenParser Char st RFunctionReference
+functionReferenceStrangeName = do
+  s <- rString
+  return $ rStringToStrangeName s
+
+rStringToStrangeName :: RConstant -> RFunctionReference
+rStringToStrangeName (RString s) = RFunctionStrangeName (RStrange s)
+
+functionReferenceIdentifier :: GenParser Char st RFunctionReference
+functionReferenceIdentifier = do
+  s <- rIdentifier
+  return $ RFunctionIdentifier s
 
 parseR :: String -> Either ParseError RExpression
 parseR input = parse functionCall "(unknown)" input
 
 parseRConstant :: String -> Either ParseError RConstant
 parseRConstant input = parse rConstant "(unknown)" input
+
+
