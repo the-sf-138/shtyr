@@ -115,6 +115,3 @@ simpleOperator   = "thing1 + thing2"
 
 parseR :: String -> Either ParseError [RExpression]
 parseR input = parse rFile "(unknown)" input
-
-parseR :: (GenParser Char st RExpression) -> String -> Either ParseError [RExpression]
-parseR p input = parse p "(unknown)" input

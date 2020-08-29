@@ -32,6 +32,16 @@ data RConstant = RNull
   | RInteger Int
   | RString String deriving (Show)
 
+instance Eq RConstant where
+  RInf == RInf = True
+  RNull == RNull = True
+  RNaN == RNaN = True
+  RTrue == RTrue = True
+  RFalse == RFalse = True
+  RInteger x == RInteger y = (x == y)
+  RNumeric x == RNumeric y = (x == y)
+  RString x == RString y = (x == y)
+  _ == _ = False
 
 -- constants
 rNULL :: GenParser Char st RConstant
@@ -80,7 +90,7 @@ rString = (try rSingleQuotedString) <|> rDoubleQuotedString
 rSingleQuotedString :: GenParser Char st RConstant
 rSingleQuotedString = do 
    char '\''
-   s <- (manyTill rStringCharacter (try $ char '\"'))
+   s <- (manyTill rStringCharacter (try $ char '\''))
    return $ RString s
 
 rDoubleQuotedString :: GenParser Char st RConstant
