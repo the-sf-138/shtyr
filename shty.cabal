@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: acb6af2561321e5774a8f3b8c4f6eb118fc4a646894d0ca595346be43199c95a
+-- hash: ee0073e25e69c211c196066c317d1c88a7f5ea6fb058c801ec23200b4d59d0ca
 
 name:           shty
 version:        0.1.0.0
@@ -29,6 +29,11 @@ library
   exposed-modules:
       JsonReader
       Lib
+      NanoParsec
+      ParsecTest
+      RParser
+      RParser2
+      StateMonadTest
       TestReader
   other-modules:
       Paths_shty
@@ -36,6 +41,7 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , parsec
   default-language: Haskell2010
 
 executable shty-exe
@@ -47,6 +53,7 @@ executable shty-exe
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , parsec >=3.1.11 && <4
     , shty
   default-language: Haskell2010
 
@@ -60,5 +67,7 @@ test-suite shty-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , parsec >=3.1.11 && <4
+    , hspec ==2.*
     , shty
   default-language: Haskell2010
