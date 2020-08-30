@@ -12,12 +12,12 @@ data RFunctionReference = RFunctionIdentifier RIdentifier
     | RFunctionStrangeName RStrangeName
     | RFunctionReferenceExpression RExpression deriving (Show)
 
-data RFunctionArgument = RTaggedFunctionArgument RFunctionTag RExpression
+data RFunctionArgument = RTaggedFunctionArgument RFunctionArgumentTag RExpression
   | RSimpleFunctionArgument RExpression
   | REllipses
   | REllipsesN Int deriving (Show)
 
-data RFunctionTag = RTagIdentifier RIdentifier
+data RFunctionArgumentTag = RTagIdentifier RIdentifier
   | RStrangeTag RStrangeName deriving (Show)
 
 data RExpression = FunctionCall RFunctionReference [RFunctionArgument]
@@ -68,7 +68,7 @@ instance Eq RFunctionArgument where
   REllipsesN x == REllipsesN y = (x == y)
   _ == _ = False
 
-instance Eq RFunctionTag where
+instance Eq RFunctionArgumentTag where
   RTagIdentifier t == RTagIdentifier s = (s == t)
   RStrangeTag t == RStrangeTag s = (s == t)
   _ == _ = False
@@ -124,6 +124,12 @@ rIdentifier = do
 
 rIdentifierChar :: GenParser Char st Char
 rIdentifierChar = alphaNum <|> (oneOf "_.")
+
+rIdentifierExpression :: GenParser Char st RExpression
+rIdentifierExpression = do
+  i <- rIdentifier
+  return $ RIdentifierExpression i
+
 
 rSingleQuotedString :: GenParser Char st RConstant
 rSingleQuotedString = do 
@@ -186,7 +192,7 @@ ellipseN = do
 
 
 expression :: GenParser Char st RExpression
-expression = functionCall
+expression = (try functionCall)  <|> rIdentifierExpression
 
 -- special infix operators are any printable characters delimited by %. the escape sequences for strings do not apply
 functionCall :: GenParser Char st RExpression
@@ -240,12 +246,11 @@ rFunctionArgumentSeparation = do
   spaces
   return ""
 
-
 singleFunctionArgument :: GenParser Char st RFunctionArgument
-singleFunctionArgument = simpleFunctionArgument <|> taggedFunctionArgument
+singleFunctionArgument = (try taggedFunctionArgument) <|> simpleFunctionArgument
 
 simpleFunctionArgument :: GenParser Char st RFunctionArgument
-simpleFunctionArgument = simpleFunctionArgumentIdentifier <|> simpleFunctionArgumentExpression
+simpleFunctionArgument = (try simpleFunctionArgumentExpression) <|> simpleFunctionArgumentIdentifier
 
 simpleFunctionArgumentIdentifier :: GenParser Char st RFunctionArgument
 simpleFunctionArgumentIdentifier = do
@@ -258,10 +263,25 @@ simpleFunctionArgumentExpression = do
   return $ RSimpleFunctionArgument $ e
 
 taggedFunctionArgument :: GenParser Char st RFunctionArgument
-taggedFunctionArgument = undefined
+taggedFunctionArgument = do
+  tag <- (try functionArgumentTagIdentifier) <|> functionArgumentTagStrange
+  char '='
+  e <- expression
+  return $ RTaggedFunctionArgument tag e
+
+functionArgumentTagIdentifier :: GenParser Char st RFunctionArgumentTag
+functionArgumentTagIdentifier = do
+  i <- rIdentifier
+  return $ RTagIdentifier i
+
+functionArgumentTagStrange :: GenParser Char st RFunctionArgumentTag
+functionArgumentTagStrange = undefined 
 
 parseR :: String -> Either ParseError RExpression
 parseR input = parse functionCall "(unknown)" input
+
+parseFunctionArgument :: String -> Either ParseError RFunctionArgument
+parseFunctionArgument input = parse singleFunctionArgument "(unknown)" input
 
 parseRConstant :: String -> Either ParseError RConstant
 parseRConstant input = parse rConstant "(unknown)" input

@@ -17,12 +17,24 @@ main = hspec $ do
     it "Parses String with escaped \\" $ do
       parseRConstant "'He says: \\'Hello\\\\World\\''" `shouldBe` (Right (RString "He says: 'Hello\\\\World'"))
   describe "R - Expressions" $ do
-    it "Parses an empty function call" $ do
+    it "Parses a empty function call" $ do
       parseR "foo()" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo")) []))
-    it "Parses an function call with simple named argument" $ do
+    it "Parses a function call with simple named argument" $ do
       parseR "foo(bar)" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
                                            [(RSimpleFunctionArgument $ RIdentifierExpression (RIdentified "bar"))]))
-    it "Parses an function call with multiple simple named argument" $ do
+    it "Parses a function call with multiple simple named argument" $ do
       parseR "foo(bar, bar2)" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
                                            [(RSimpleFunctionArgument $ RIdentifierExpression (RIdentified "bar")),
                                              (RSimpleFunctionArgument $ RIdentifierExpression (RIdentified "bar2"))]))
+    it "Parses a nested function call" $ do
+      parseR "foo(bar()) " `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
+                                           [ RSimpleFunctionArgument (FunctionCall (RFunctionIdentifier (RIdentified "bar")) [])]))
+
+    it "Parses a function call with a tagged function argument name" $ do
+      parseR "foo(bar=something)" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
+                                           [ RTaggedFunctionArgument (RTagIdentifier $ RIdentified "bar")
+                                             (RIdentifierExpression (RIdentified "something")) ] ))
+    it "Parses a function call with a tagged function argument expression" $ do
+      parseR "foo(bar=something())" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
+                                           [ RTaggedFunctionArgument (RTagIdentifier $ RIdentified "bar")
+                                             (FunctionCall (RFunctionIdentifier $ RIdentified "something") [])] ))
