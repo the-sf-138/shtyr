@@ -20,7 +20,8 @@ data RFunctionArgument = RTaggedFunctionArgument RFunctionTag RExpression
 data RFunctionTag = RTagIdentifier RIdentifier
   | RStrangeTag RStrangeName deriving (Show)
 
-data RExpression = FunctionCall RFunctionReference [RFunctionArgument] deriving (Show)
+data RExpression = FunctionCall RFunctionReference [RFunctionArgument]
+  | RIdentifierExpression RIdentifier deriving (Show)
 
 data RConstant = RNull
   | RInf
@@ -45,11 +46,14 @@ instance Eq RConstant where
 
 instance Eq RExpression where
   FunctionCall a xs == FunctionCall b ys = (a == b) && (xs == ys)
+  RIdentifierExpression a == RIdentifierExpression b = (a == b)
+  _ == _ = False
 
 instance Eq RFunctionReference where
   RFunctionStrangeName a == RFunctionStrangeName b = (a == b)
   RFunctionIdentifier a == RFunctionIdentifier b = (a == b)
   RFunctionReferenceExpression e == RFunctionReferenceExpression f = (e == f)
+  _ == _ = False
 
 instance Eq RStrangeName where
   RStrange a == RStrange b = (a == b)
@@ -115,7 +119,7 @@ rString = (try rSingleQuotedString) <|> rDoubleQuotedString
 
 rIdentifier :: GenParser Char st RIdentifier
 rIdentifier = do
-  s <- many rIdentifierChar
+  s <- many1 rIdentifierChar
   return $ RIdentified s
 
 rIdentifierChar :: GenParser Char st Char
@@ -189,13 +193,19 @@ functionCall :: GenParser Char st RExpression
 functionCall = do
     fref <- functionReference
     char '('
-    char ')'
-    return $ FunctionCall fref []
+    args <- emptyArgumentList <|> rFunctionArgumentList
+    return $ FunctionCall fref args
 
 functionReference :: GenParser Char st RFunctionReference
 functionReference = (try functionReferenceIdentifier)
   <|> (try functionReferenceStrangeName)
   <|> functionReferenceExpression
+
+
+emptyArgumentList :: GenParser Char st [RFunctionArgument]
+emptyArgumentList = do
+  char ')'
+  return []
 
 functionReferenceExpression :: GenParser Char st RFunctionReference
 functionReferenceExpression = do
@@ -216,6 +226,39 @@ functionReferenceIdentifier :: GenParser Char st RFunctionReference
 functionReferenceIdentifier = do
   s <- rIdentifier
   return $ RFunctionIdentifier s
+
+rFunctionArgumentList :: GenParser Char st [RFunctionArgument]
+rFunctionArgumentList = do
+  r <- sepBy singleFunctionArgument rFunctionArgumentSeparation
+  char ')'
+  return r
+
+rFunctionArgumentSeparation :: GenParser Char st String
+rFunctionArgumentSeparation = do
+  spaces
+  char ','
+  spaces
+  return ""
+
+
+singleFunctionArgument :: GenParser Char st RFunctionArgument
+singleFunctionArgument = simpleFunctionArgument <|> taggedFunctionArgument
+
+simpleFunctionArgument :: GenParser Char st RFunctionArgument
+simpleFunctionArgument = simpleFunctionArgumentIdentifier <|> simpleFunctionArgumentExpression
+
+simpleFunctionArgumentIdentifier :: GenParser Char st RFunctionArgument
+simpleFunctionArgumentIdentifier = do
+  i <- rIdentifier
+  return $ RSimpleFunctionArgument $ RIdentifierExpression i
+
+simpleFunctionArgumentExpression :: GenParser Char st RFunctionArgument
+simpleFunctionArgumentExpression = do
+  e <- expression
+  return $ RSimpleFunctionArgument $ e
+
+taggedFunctionArgument :: GenParser Char st RFunctionArgument
+taggedFunctionArgument = undefined
 
 parseR :: String -> Either ParseError RExpression
 parseR input = parse functionCall "(unknown)" input

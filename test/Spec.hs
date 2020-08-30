@@ -19,3 +19,10 @@ main = hspec $ do
   describe "R - Expressions" $ do
     it "Parses an empty function call" $ do
       parseR "foo()" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo")) []))
+    it "Parses an function call with simple named argument" $ do
+      parseR "foo(bar)" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
+                                           [(RSimpleFunctionArgument $ RIdentifierExpression (RIdentified "bar"))]))
+    it "Parses an function call with multiple simple named argument" $ do
+      parseR "foo(bar, bar2)" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
+                                           [(RSimpleFunctionArgument $ RIdentifierExpression (RIdentified "bar")),
+                                             (RSimpleFunctionArgument $ RIdentifierExpression (RIdentified "bar2"))]))
