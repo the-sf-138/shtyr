@@ -194,6 +194,25 @@ ellipseN = do
 expression :: GenParser Char st RExpression
 expression = (try functionCall)  <|> rIdentifierExpression
 
+-- Need to do this while we are not at the end of the expression
+outterExpression :: GenParser Char st RExpression
+outterExpression = do
+  e   <- expression
+  end <- endOfExpression
+  if end
+    then
+    do
+      return e
+    else
+    do
+      char '('
+      args <- emptyArgumentList <|> rFunctionArgumentList
+      return $ FunctionCall (RFunctionReferenceExpression e) args
+
+endOfExpression :: GenParser Char st Bool
+endOfExpression = (oneOf ";\n" >> return True) <|> (return False)
+
+
 -- special infix operators are any printable characters delimited by %. the escape sequences for strings do not apply
 functionCall :: GenParser Char st RExpression
 functionCall = do
@@ -278,7 +297,7 @@ functionArgumentTagStrange :: GenParser Char st RFunctionArgumentTag
 functionArgumentTagStrange = undefined 
 
 parseR :: String -> Either ParseError RExpression
-parseR input = parse functionCall "(unknown)" input
+parseR input = parse outterExpression "(unknown)" input
 
 parseFunctionArgument :: String -> Either ParseError RFunctionArgument
 parseFunctionArgument input = parse singleFunctionArgument "(unknown)" input
