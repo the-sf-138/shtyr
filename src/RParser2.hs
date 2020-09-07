@@ -21,6 +21,7 @@ data RFunctionArgumentTag = RTagIdentifier RIdentifier
   | RStrangeTag RStrangeName deriving (Show)
 
 data RExpression = FunctionCall RFunctionReference [RFunctionArgument]
+  | RCompoundExpression [RExpression]
   | RIdentifierExpression RIdentifier deriving (Show)
 
 data RConstant = RNull
@@ -47,6 +48,7 @@ instance Eq RConstant where
 instance Eq RExpression where
   FunctionCall a xs == FunctionCall b ys = (a == b) && (xs == ys)
   RIdentifierExpression a == RIdentifierExpression b = (a == b)
+  RCompoundExpression as == RCompoundExpression bs = (as == bs)
   _ == _ = False
 
 instance Eq RFunctionReference where
@@ -192,9 +194,10 @@ ellipseN = do
 
 
 expression :: GenParser Char st RExpression
-expression = (try functionCall)  <|> rIdentifierExpression
+expression = (try functionCall)  <|> (try compoundExpression) <|> rIdentifierExpression
 
 -- Need to do this while we are not at the end of the expression
+-- XXX this needs to be redone
 outterExpression :: GenParser Char st RExpression
 outterExpression = do
   e   <- expression
@@ -207,6 +210,7 @@ outterExpression = do
     do
       char '('
       args <- emptyArgumentList <|> rFunctionArgumentList
+      end <- endOfExpression
       return $ FunctionCall (RFunctionReferenceExpression e) args
 
 endOfExpression :: GenParser Char st Bool
@@ -295,6 +299,16 @@ functionArgumentTagIdentifier = do
 
 functionArgumentTagStrange :: GenParser Char st RFunctionArgumentTag
 functionArgumentTagStrange = undefined 
+
+compoundExpression :: GenParser Char st RExpression
+compoundExpression = do
+  char '{'
+  es <- compoundExpressionInner
+  char '}'
+  return $ RCompoundExpression es
+
+compoundExpressionInner :: GenParser Char st [RExpression]
+compoundExpressionInner = many outterExpression
 
 parseR :: String -> Either ParseError RExpression
 parseR input = parse outterExpression "(unknown)" input

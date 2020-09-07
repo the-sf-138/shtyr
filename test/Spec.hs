@@ -44,3 +44,9 @@ main = hspec $ do
       parseR "foo(bar=something());" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
                                            [ RTaggedFunctionArgument (RTagIdentifier $ RIdentified "bar")
                                              (FunctionCall (RFunctionIdentifier $ RIdentified "something") [])] ))
+    it "Parses a compound expression" $ do
+      parseR "{foo();bar();hack();};" `shouldBe` (Right (RCompoundExpression
+                                                          [(FunctionCall (RFunctionIdentifier (RIdentified "foo")) []),
+                                                          (FunctionCall (RFunctionIdentifier (RIdentified "bar")) []),
+                                                          (FunctionCall (RFunctionIdentifier (RIdentified "hack")) [])
+                                                          ]))
