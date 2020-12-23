@@ -29,7 +29,6 @@ library
   exposed-modules:
       Lib
       RParser
-      RParser2
       TestReader
   other-modules:
       Paths_shty

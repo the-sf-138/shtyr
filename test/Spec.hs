@@ -1,7 +1,7 @@
 --{-# OPTIONS_GHC -fno-warn-unused-do-bind -F -pgmF hspec-discover #-}
 import Test.Hspec
 
-import RParser2
+import RParser
 
 main :: IO ()
 main = hspec $ do
