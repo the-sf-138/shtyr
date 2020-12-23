@@ -27,13 +27,9 @@ source-repository head
 
 library
   exposed-modules:
-      JsonReader
       Lib
-      NanoParsec
-      ParsecTest
       RParser
       RParser2
-      StateMonadTest
       TestReader
   other-modules:
       Paths_shty
