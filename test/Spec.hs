@@ -1,6 +1,7 @@
 --{-# OPTIONS_GHC -fno-warn-unused-do-bind -F -pgmF hspec-discover #-}
 import Test.Hspec
 
+import RLanguage
 import RParser
 
 main :: IO ()
@@ -50,3 +51,7 @@ main = hspec $ do
                                                           (FunctionCall (RFunctionIdentifier (RIdentified "bar")) []),
                                                           (FunctionCall (RFunctionIdentifier (RIdentified "hack")) [])
                                                           ]))
+
+  describe "R - Assignment" $ do
+    it "Parses a simple assignment" $ do
+      parseR "variable = \"Hello\";" `shouldBe` (Right (RAssignment (RVariableExpression (RIdentified "variable")) (RConstantExpression (RString "Hello"))))

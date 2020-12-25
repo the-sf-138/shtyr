@@ -27,9 +27,8 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
       RParser
-      TestReader
+      RLanguage
   other-modules:
       Paths_shty
   hs-source-dirs:

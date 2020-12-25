@@ -1,6 +1,7 @@
 module Main where
 
-import Lib
+import RLanguage
+import RParser
 
 main :: IO ()
 main = putStrLn "Hello World"
