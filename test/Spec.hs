@@ -23,16 +23,16 @@ main = hspec $ do
       parseR "foo()\n" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo")) []))
     it "Parses a function call with simple named argument" $ do
       parseR "foo(bar);" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
-                                           [(RSimpleFunctionArgument $ RIdentifierExpression (RIdentified "bar"))]))
+                                           [(RSimpleFunctionArgument $ RVariableExpression (RIdentified "bar"))]))
     it "Parses a r-value function call with simple named argument" $ do
       parseR "foo()(bar);" `shouldBe` (Right (FunctionCall (RFunctionReferenceExpression
                                                               (FunctionCall
                                                                (RFunctionIdentifier (RIdentified "foo")) []))
-                                           [(RSimpleFunctionArgument $ RIdentifierExpression (RIdentified "bar"))]))
+                                           [(RSimpleFunctionArgument $ RVariableExpression (RIdentified "bar"))]))
     it "Parses a function call with multiple simple named argument" $ do
       parseR "foo(bar, bar2);" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
-                                           [(RSimpleFunctionArgument $ RIdentifierExpression (RIdentified "bar")),
-                                             (RSimpleFunctionArgument $ RIdentifierExpression (RIdentified "bar2"))]))
+                                           [(RSimpleFunctionArgument $ RVariableExpression (RIdentified "bar")),
+                                             (RSimpleFunctionArgument $ RVariableExpression (RIdentified "bar2"))]))
     it "Parses a nested function call" $ do
       parseR "foo(bar());" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
                                            [ RSimpleFunctionArgument (FunctionCall (RFunctionIdentifier (RIdentified "bar")) [])]))
@@ -40,7 +40,7 @@ main = hspec $ do
     it "Parses a function call with a tagged function argument name" $ do
       parseR "foo(bar=something);" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
                                            [ RTaggedFunctionArgument (RTagIdentifier $ RIdentified "bar")
-                                             (RIdentifierExpression (RIdentified "something")) ] ))
+                                             (RVariableExpression (RIdentified "something")) ] ))
     it "Parses a function call with a tagged function argument expression" $ do
       parseR "foo(bar=something());" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
                                            [ RTaggedFunctionArgument (RTagIdentifier $ RIdentified "bar")

@@ -67,17 +67,16 @@ instance Eq RFunctionArgumentTag where
   _ == _ = False
 
 
-data RExpression = FunctionCall RFunctionReference [RFunctionArgument]
-  | RCompoundExpression [RExpression]
-  | RAssignment RExpression RExpression
-  | RConstantExpression RConstant
+data RExpression =
+  RConstantExpression RConstant
   | RVariableExpression RIdentifier
   | RStrangeVariableExpression RStrangeName
-  | RIdentifierExpression RIdentifier deriving (Show)
+  | RAssignment RExpression RExpression
+  | FunctionCall RFunctionReference [RFunctionArgument]
+  | RCompoundExpression [RExpression] deriving (Show)
 
 instance Eq RExpression where
   FunctionCall a xs == FunctionCall b ys = (a == b) && xs == ys
-  RIdentifierExpression a == RIdentifierExpression b = a == b
   RCompoundExpression as == RCompoundExpression bs = as == bs
   RVariableExpression a == RVariableExpression b = a == b
   RConstantExpression a == RConstantExpression b = a == b
