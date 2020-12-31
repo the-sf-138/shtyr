@@ -115,6 +115,13 @@ ellipseN = do
   n <- digit
   return $ REllipsesN (read [n]::Int)
 
+-- RExpressions
+rWhitespace :: GenParser Char st RExpression
+rWhitespace = oneOf "\n" >> return RWhitespace
+
+rEndOfFile :: GenParser Char st RExpression
+rEndOfFile = eof >> return REndOfFile
+  
   
 -- RExpressions
 rVariableExpression :: GenParser Char st RExpression
@@ -124,56 +131,56 @@ rConstantExpression :: GenParser Char st RExpression
 rConstantExpression = RConstantExpression <$> rConstant
 
 
+-- TODO This should probably also handle EOF
+rEndOfExpression :: GenParser Char st Char
+rEndOfExpression = oneOf "\n;"
 
-expression :: GenParser Char st RExpression
-expression = try functionCall  <|> try compoundExpression <|> try assignmentExpression <|> try rVariableExpression
 
--- Need to do this while we are not at the end of the expression
--- XXX this needs to be redone
-outterExpression :: GenParser Char st RExpression
-outterExpression = do
-  e   <- expression
-  end <- endOfExpression
-  if end
-    then
-    do
-      return e
-    else
-    do
-      char '('
-      args <- emptyArgumentList <|> rFunctionArgumentList
-      end <- endOfExpression
-      return $ FunctionCall (RFunctionReferenceExpression e) args
+rTerminatedBy e p = do
+  v <- p
+  e
+  return v
 
-endOfExpression :: GenParser Char st Bool
-endOfExpression = (oneOf ";\n" >> return True) <|> return False
+rExpressionTerminatedBy e =
+  try rEndOfFile
+  <|> try rWhitespace
+  <|> try (expressionTerminator rVariableExpression)
+  <|> try (expressionTerminator assignmentExpression)
+  <|> try (expressionTerminator functionCall)
+  where expressionTerminator = rTerminatedBy e
+
+rNonEmptyExpressionTerminatedBy e =
+  try rWhitespace
+  <|> try (expressionTerminator rVariableExpression)
+  <|> try (expressionTerminator assignmentExpression)
+  <|> try (expressionTerminator functionCall)
+  where expressionTerminator = rTerminatedBy e
+
+rFullExpression :: GenParser Char st RExpression
+rFullExpression = rExpressionTerminatedBy (oneOf ";\n")
+
+rNonEmptyExpression :: GenParser Char st RExpression
+rNonEmptyExpression  = rNonEmptyExpressionTerminatedBy (oneOf ";\n")
+
+rFunctionReference :: GenParser Char st RExpression
+rFunctionReference = rExpressionTerminatedBy (oneOf "(")
+
+rFunctionArgumentExpression :: GenParser Char st RExpression
+rFunctionArgumentExpression = rExpressionTerminatedBy (oneOf ",)")
 
 
 -- special infix operators are any printable characters delimited by %. the escape sequences for strings do not apply
 functionCall :: GenParser Char st RExpression
 functionCall = do
-    fref <- functionReference
-    char '('
-    args <- emptyArgumentList <|> rFunctionArgumentList
-    return $ FunctionCall fref args
-
-functionReference :: GenParser Char st RFunctionReference
-functionReference = try functionReferenceIdentifier
-  <|> try functionReferenceStrangeName
-  <|> functionReferenceExpression
+    fref <- rFunctionReference
+    char ')'
+    return $ FunctionCall fref []
 
 
 emptyArgumentList :: GenParser Char st [RFunctionArgument]
 emptyArgumentList = do
   char ')'
   return []
-
-functionReferenceExpression :: GenParser Char st RFunctionReference
-functionReferenceExpression = do
-  char '('
-  e <- expression 
-  char ')'
-  return $ RFunctionReferenceExpression e
 
 functionReferenceStrangeName :: GenParser Char st RFunctionReference
 functionReferenceStrangeName = rStringToStrangeName <$> rString
@@ -207,13 +214,13 @@ simpleFunctionArgumentIdentifier :: GenParser Char st RFunctionArgument
 simpleFunctionArgumentIdentifier = RSimpleFunctionArgument . RVariableExpression <$> rIdentifier
 
 simpleFunctionArgumentExpression :: GenParser Char st RFunctionArgument
-simpleFunctionArgumentExpression = RSimpleFunctionArgument <$> expression
+simpleFunctionArgumentExpression = RSimpleFunctionArgument <$> rFunctionArgumentExpression
 
 taggedFunctionArgument :: GenParser Char st RFunctionArgument
 taggedFunctionArgument = do
   tag <- try functionArgumentTagIdentifier <|> functionArgumentTagStrange
   char '='
-  e <- expression
+  e <- rFunctionArgumentExpression
   return $ RTaggedFunctionArgument tag e
 
 assignmentExpression :: GenParser Char st RExpression
@@ -232,6 +239,7 @@ functionArgumentTagIdentifier = RTagIdentifier <$> rIdentifier
 functionArgumentTagStrange :: GenParser Char st RFunctionArgumentTag
 functionArgumentTagStrange = undefined 
 
+-- Compound Expression
 compoundExpression :: GenParser Char st RExpression
 compoundExpression = do
   char '{'
@@ -240,10 +248,19 @@ compoundExpression = do
   return $ RCompoundExpression es
 
 compoundExpressionInner :: GenParser Char st [RExpression]
-compoundExpressionInner = many outterExpression
+compoundExpressionInner = many rFullExpression
 
-parseR :: String -> Either ParseError RExpression
-parseR = parse outterExpression "(unknown)" 
+-- For handling whole files and such
+rFile :: GenParser Char st [RExpression]
+rFile = manyTill rNonEmptyExpression eof
+
+
+parseR :: String -> Either ParseError [RExpression]
+parseR = parse rFile "(unknown)" 
+
+parseRExpression :: String -> Either ParseError RExpression
+parseRExpression = parse rFullExpression "(unknown)" 
+
 
 parseFunctionArgument :: String -> Either ParseError RFunctionArgument
 parseFunctionArgument = parse singleFunctionArgument "(unknown)"

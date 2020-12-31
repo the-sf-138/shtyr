@@ -19,39 +19,17 @@ main = hspec $ do
       parseRConstant "'He says: \\'Hello\\\\World\\''" `shouldBe` (Right (RString "He says: 'Hello\\\\World'"))
 
   describe "R - Expressions" $ do
+    it "Parses an empty string " $ do
+      parseRExpression "" `shouldBe` (Right (REndOfFile))
+    it "Parses an empty line " $ do
+      parseRExpression "\n" `shouldBe` (Right (RWhitespace))
     it "Parses a empty function call" $ do
-      parseR "foo()\n" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo")) []))
-    it "Parses a function call with simple named argument" $ do
-      parseR "foo(bar);" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
-                                           [(RSimpleFunctionArgument $ RVariableExpression (RIdentified "bar"))]))
-    it "Parses a r-value function call with simple named argument" $ do
-      parseR "foo()(bar);" `shouldBe` (Right (FunctionCall (RFunctionReferenceExpression
-                                                              (FunctionCall
-                                                               (RFunctionIdentifier (RIdentified "foo")) []))
-                                           [(RSimpleFunctionArgument $ RVariableExpression (RIdentified "bar"))]))
-    it "Parses a function call with multiple simple named argument" $ do
-      parseR "foo(bar, bar2);" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
-                                           [(RSimpleFunctionArgument $ RVariableExpression (RIdentified "bar")),
-                                             (RSimpleFunctionArgument $ RVariableExpression (RIdentified "bar2"))]))
-    it "Parses a nested function call" $ do
-      parseR "foo(bar());" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
-                                           [ RSimpleFunctionArgument (FunctionCall (RFunctionIdentifier (RIdentified "bar")) [])]))
+      parseRExpression "foo()\n" `shouldBe` (Right (FunctionCall (RVariableExpression (RIdentified "foo")) []))
 
-    it "Parses a function call with a tagged function argument name" $ do
-      parseR "foo(bar=something);" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
-                                           [ RTaggedFunctionArgument (RTagIdentifier $ RIdentified "bar")
-                                             (RVariableExpression (RIdentified "something")) ] ))
-    it "Parses a function call with a tagged function argument expression" $ do
-      parseR "foo(bar=something());" `shouldBe` (Right (FunctionCall (RFunctionIdentifier (RIdentified "foo"))
-                                           [ RTaggedFunctionArgument (RTagIdentifier $ RIdentified "bar")
-                                             (FunctionCall (RFunctionIdentifier $ RIdentified "something") [])] ))
-    it "Parses a compound expression" $ do
-      parseR "{foo();bar();hack();};" `shouldBe` (Right (RCompoundExpression
-                                                          [(FunctionCall (RFunctionIdentifier (RIdentified "foo")) []),
-                                                          (FunctionCall (RFunctionIdentifier (RIdentified "bar")) []),
-                                                          (FunctionCall (RFunctionIdentifier (RIdentified "hack")) [])
-                                                          ]))
+  describe "R - Files" $ do
+    it "Parses an empty line " $ do
+      parseR "foo()\n" `shouldBe` (Right [(FunctionCall (RVariableExpression (RIdentified "foo")) [])])
 
-  describe "R - Assignment" $ do
-    it "Parses a simple assignment" $ do
-      parseR "variable = \"Hello\";" `shouldBe` (Right (RAssignment (RVariableExpression (RIdentified "variable")) (RConstantExpression (RString "Hello"))))
+--  describe "R - Assignment" $ do
+--    it "Parses a simple assignment" $ do
+--      parseR "variable = \"Hello\";" `shouldBe` (Right [(RAssignment (RVariableExpression (RIdentified "variable")) (RConstantExpression (RString "Hello")))])

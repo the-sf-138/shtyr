@@ -68,11 +68,13 @@ instance Eq RFunctionArgumentTag where
 
 
 data RExpression =
-  RConstantExpression RConstant
+  REndOfFile
+  | RWhitespace
+  | RConstantExpression RConstant
   | RVariableExpression RIdentifier
   | RStrangeVariableExpression RStrangeName
   | RAssignment RExpression RExpression
-  | FunctionCall RFunctionReference [RFunctionArgument]
+  | FunctionCall RExpression [RFunctionArgument]
   | RCompoundExpression [RExpression] deriving (Show)
 
 instance Eq RExpression where
@@ -81,6 +83,8 @@ instance Eq RExpression where
   RVariableExpression a == RVariableExpression b = a == b
   RConstantExpression a == RConstantExpression b = a == b
   RAssignment l r == RAssignment x y  = (l == x) && (r == y)
+  RWhitespace == RWhitespace = True
+  REndOfFile == REndOfFile = True
   _ == _ = False
 
 
