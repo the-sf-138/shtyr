@@ -163,23 +163,24 @@ rNonEmptyExpression :: GenParser Char st RExpression
 rNonEmptyExpression  = rNonEmptyExpressionTerminatedBy (oneOf ";\n")
 
 rFunctionReference :: GenParser Char st RExpression
-rFunctionReference = rExpressionTerminatedBy (oneOf "(")
+rFunctionReference = rExpressionTerminatedBy (lookAhead $ oneOf "(")
 
 rFunctionArgumentExpression :: GenParser Char st RExpression
 rFunctionArgumentExpression = rExpressionTerminatedBy (oneOf ",)")
-
 
 -- special infix operators are any printable characters delimited by %. the escape sequences for strings do not apply
 functionCall :: GenParser Char st RExpression
 functionCall = do
     fref <- rFunctionReference
+    char '('
+    args <- try emptyArgumentList <|> rFunctionArgumentList
     char ')'
-    return $ FunctionCall fref []
+    return $ FunctionCall fref args
 
 
 emptyArgumentList :: GenParser Char st [RFunctionArgument]
 emptyArgumentList = do
-  char ')'
+  lookAhead $ char ')'
   return []
 
 functionReferenceStrangeName :: GenParser Char st RFunctionReference
@@ -194,7 +195,7 @@ functionReferenceIdentifier = RFunctionIdentifier <$> rIdentifier
 rFunctionArgumentList :: GenParser Char st [RFunctionArgument]
 rFunctionArgumentList = do
   r <- sepBy singleFunctionArgument rFunctionArgumentSeparation
-  char ')'
+  lookAhead $ char ')'
   return r
 
 rFunctionArgumentSeparation :: GenParser Char st String
@@ -218,7 +219,7 @@ simpleFunctionArgumentExpression = RSimpleFunctionArgument <$> rFunctionArgument
 
 taggedFunctionArgument :: GenParser Char st RFunctionArgument
 taggedFunctionArgument = do
-  tag <- try functionArgumentTagIdentifier <|> functionArgumentTagStrange
+  tag <- functionArgumentTagIdentifier -- <|> functionArgumentTagStrange
   char '='
   e <- rFunctionArgumentExpression
   return $ RTaggedFunctionArgument tag e
@@ -261,9 +262,6 @@ parseR = parse rFile "(unknown)"
 parseRExpression :: String -> Either ParseError RExpression
 parseRExpression = parse rFullExpression "(unknown)" 
 
-
-parseFunctionArgument :: String -> Either ParseError RFunctionArgument
-parseFunctionArgument = parse singleFunctionArgument "(unknown)"
 
 parseRConstant :: String -> Either ParseError RConstant
 parseRConstant = parse rConstant "(unknown)"

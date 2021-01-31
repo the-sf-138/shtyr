@@ -25,6 +25,8 @@ main = hspec $ do
       parseRExpression "\n" `shouldBe` (Right (RWhitespace))
     it "Parses a empty function call" $ do
       parseRExpression "foo()\n" `shouldBe` (Right (FunctionCall (RVariableExpression (RIdentified "foo")) []))
+    it "Parses a function call with an argument" $ do
+      parseRExpression "foo(bar,)\n" `shouldBe` (Right (FunctionCall (RVariableExpression (RIdentified "foo")) [RSimpleFunctionArgument $ RVariableExpression (RIdentified "bar")]))
 
   describe "R - Files" $ do
     it "Parses an empty line " $ do
