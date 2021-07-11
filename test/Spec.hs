@@ -26,12 +26,16 @@ main = hspec $ do
     it "Parses a empty function call" $ do
       parseRExpression "foo()\n" `shouldBe` (Right (FunctionCall (RVariableExpression (RIdentified "foo")) []))
     it "Parses a function call with an argument" $ do
-      parseRExpression "foo(bar,)\n" `shouldBe` (Right (FunctionCall (RVariableExpression (RIdentified "foo")) [RSimpleFunctionArgument $ RVariableExpression (RIdentified "bar")]))
+      parseRExpression "foo(bar)\n" `shouldBe` (Right (FunctionCall (RVariableExpression (RIdentified "foo")) [(RSimpleFunctionArgument $ RVariableExpression (RIdentified "bar"))]))
 
   describe "R - Files" $ do
     it "Parses an empty line " $ do
-      parseR "foo()\n" `shouldBe` (Right [(FunctionCall (RVariableExpression (RIdentified "foo")) [])])
+      parseR "" `shouldBe` (Right [])
+    it "Parses 2 lines of function calls" $ do
+      parseR "foo()\nbar()\n" `shouldBe` (Right [FunctionCall (RVariableExpression (RIdentified "foo")) [], FunctionCall (RVariableExpression (RIdentified "bar")) []])
 
---  describe "R - Assignment" $ do
---    it "Parses a simple assignment" $ do
---      parseR "variable = \"Hello\";" `shouldBe` (Right [(RAssignment (RVariableExpression (RIdentified "variable")) (RConstantExpression (RString "Hello")))])
+  describe "R - Assignment" $ do
+    it "Parses a simple  = assignment" $ do
+      parseR "variable = \"Hello\";" `shouldBe` (Right [(RAssignment (RVariableExpression (RIdentified "variable")) REqualSign(RConstantExpression (RString "Hello")))])
+    it "Parses a simple <- assignment" $ do
+      parseR "variable <- \"Hello\";" `shouldBe` (Right [(RAssignment (RVariableExpression (RIdentified "variable")) RArrow (RConstantExpression (RString "Hello")))])

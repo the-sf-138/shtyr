@@ -116,6 +116,16 @@ ellipseN = do
   return $ REllipsesN (read [n]::Int)
 
 -- RExpressions
+rAssignmentOperatorEqual :: GenParser Char st RAssignmentOperator
+rAssignmentOperatorEqual = char '=' >> return REqualSign
+
+rAssignmentOperatorArrow :: GenParser Char st RAssignmentOperator
+rAssignmentOperatorArrow = string "<-" >> return RArrow
+
+rAssignmentOperator :: GenParser Char st RAssignmentOperator
+rAssignmentOperator = rAssignmentOperatorEqual <|> rAssignmentOperatorArrow
+
+
 rWhitespace :: GenParser Char st RExpression
 rWhitespace = oneOf "\n" >> return RWhitespace
 
@@ -150,8 +160,7 @@ rExpressionTerminatedBy e =
   where expressionTerminator = rTerminatedBy e
 
 rNonEmptyExpressionTerminatedBy e =
-  try rWhitespace
-  <|> try (expressionTerminator rVariableExpression)
+   try (expressionTerminator rVariableExpression)
   <|> try (expressionTerminator assignmentExpression)
   <|> try (expressionTerminator functionCall)
   where expressionTerminator = rTerminatedBy e
@@ -209,7 +218,7 @@ singleFunctionArgument :: GenParser Char st RFunctionArgument
 singleFunctionArgument = try taggedFunctionArgument <|> simpleFunctionArgument
 
 simpleFunctionArgument :: GenParser Char st RFunctionArgument
-simpleFunctionArgument = try simpleFunctionArgumentExpression <|> simpleFunctionArgumentIdentifier
+simpleFunctionArgument = try simpleFunctionArgumentIdentifier <|> simpleFunctionArgumentExpression
 
 simpleFunctionArgumentIdentifier :: GenParser Char st RFunctionArgument
 simpleFunctionArgumentIdentifier = RSimpleFunctionArgument . RVariableExpression <$> rIdentifier
@@ -228,10 +237,10 @@ assignmentExpression :: GenParser Char st RExpression
 assignmentExpression = do
   lhs <- rVariableExpression
   spaces
-  char '='
+  op <- rAssignmentOperator
   spaces
   rhs <- rConstantExpression
-  return $ RAssignment lhs rhs
+  return $ RAssignment lhs op rhs
 
 
 functionArgumentTagIdentifier :: GenParser Char st RFunctionArgumentTag

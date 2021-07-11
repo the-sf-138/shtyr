@@ -66,6 +66,8 @@ instance Eq RFunctionArgumentTag where
   RStrangeTag t == RStrangeTag s = s == t
   _ == _ = False
 
+data RAssignmentOperator = REqualSign | RArrow deriving (Show)
+
 
 data RExpression =
   REndOfFile
@@ -73,7 +75,7 @@ data RExpression =
   | RConstantExpression RConstant
   | RVariableExpression RIdentifier
   | RStrangeVariableExpression RStrangeName
-  | RAssignment RExpression RExpression
+  | RAssignment RExpression RAssignmentOperator RExpression
   | FunctionCall RExpression [RFunctionArgument]
   | RCompoundExpression [RExpression] deriving (Show)
 
@@ -82,7 +84,7 @@ instance Eq RExpression where
   RCompoundExpression as == RCompoundExpression bs = as == bs
   RVariableExpression a == RVariableExpression b = a == b
   RConstantExpression a == RConstantExpression b = a == b
-  RAssignment l r == RAssignment x y  = (l == x) && (r == y)
+  RAssignment l o r == RAssignment x n y  = (l == x) && (r == y)
   RWhitespace == RWhitespace = True
   REndOfFile == REndOfFile = True
   _ == _ = False
